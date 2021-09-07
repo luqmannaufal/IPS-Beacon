@@ -31,6 +31,8 @@ import static com.navigine.naviginesdk.RouteEvent.TURN_RIGHT;
 
 import android.os.Vibrator;
 
+import org.w3c.dom.Text;
+
 public class MainActivity extends Activity
 {
   private static final String   TAG                     = "NAVIGINE.Demo";
@@ -360,7 +362,7 @@ public class MainActivity extends Activity
 //    float posisiY = 0.0F;
 //    posisiX = (float) 15.11;
 //    posisiY = (float) 12.41;
-    
+//    posisiY = (float) 12.41;
     if (mLocation == null || mCurrentSubLocationIndex < 0)
       return;
     
@@ -510,23 +512,26 @@ public class MainActivity extends Activity
       switch (mDeviceInfo.getErrorCode())
       {
         case 4:
-          setErrorMessage(String.format(Locale.ENGLISH,"You are out of navigation zone! Please, check that your bluetooth is enabled!"));
+          setErrorMessage(String.format(new Locale ("id", "ID"),"Anda keluar dari zona navigasi! Tolong, periksa apakah bluetooth Anda diaktifkan!"));
 //          speak("You are out of navigation zone! Please, check that your bluetooth is enabled!");
+          speak("Anda keluar dari zona navigasi! Tolong, periksa apakah bluetooth Anda diaktifkan!");
+
           break;
-        
+
         case 8:
         case 30:
-          setErrorMessage(String.format(Locale.ENGLISH,"Not enough beacons on the location! Please, add more beacons!"));
+          setErrorMessage(String.format(new Locale ("id", "ID"),"Not enough beacons on the location! Please, add more beacons!"));
+
           break;
         
         default:
-          setErrorMessage(String.format(Locale.ENGLISH,
+          setErrorMessage(String.format(new Locale ("id", "ID"),
                           "Something is wrong with location '%s' (error code %d)! " +
                           "Please, contact technical support!",
                           mLocation.getName(), mDeviceInfo.getErrorCode()));
           break;
       }
-//      String peringatan1 = String.;
+//      String peringatan1 = String.valueOf(mDeviceInfo.getErrorCode());
 //      speak(peringatan1);
     }
 
