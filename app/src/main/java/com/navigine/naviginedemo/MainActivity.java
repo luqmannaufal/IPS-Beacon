@@ -11,6 +11,7 @@ import android.os.*;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
+import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.view.*;
 import android.view.View.*;
@@ -24,6 +25,9 @@ import com.navigine.naviginesdk.*;
 
 import static android.view.View.GONE;
 import static android.widget.Toast.LENGTH_SHORT;
+
+import static com.navigine.naviginesdk.RouteEvent.TURN_LEFT;
+import static com.navigine.naviginesdk.RouteEvent.TURN_RIGHT;
 
 import android.os.Vibrator;
 
@@ -78,6 +82,8 @@ public class MainActivity extends Activity
   private RectF   mSelectedVenueRect = null;
   private Zone    mSelectedZone   = null;
 
+  private String suara;
+
   private TextToSpeech myTTS;
 
   protected static  final int RESULT_SPEECH =1;
@@ -97,7 +103,10 @@ public class MainActivity extends Activity
   private Intent recognizerIntent;
 
   private Vibrator getar; //marai geter
-  
+  private String speak2 = null;
+  private String peringatan2 = null;
+
+
   @Override protected void onCreate(Bundle savedInstanceState)
   {
     Log.d(TAG, "MainActivity started");
@@ -145,6 +154,9 @@ public class MainActivity extends Activity
     shake = 0.00f;
 
     getar = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+
+
+
 
     textToSpeech();
     
@@ -231,6 +243,32 @@ public class MainActivity extends Activity
                                                                               NotificationManager.IMPORTANCE_LOW));
     }
   }
+
+//  protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+//  super.onActivityResult(requestCode, resultCode, data);
+//
+//  switch (requestCode) {
+//
+//    case RESULT_SPEECH: {
+//      if (resultCode == RESULT_OK && null != data) {
+//        final ArrayList<String> MasukkanSuaraAnda = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+//        suara = MasukkanSuaraAnda.get(0);
+//        dialog(suara);
+//        mDatabaseReference.child("Voice").setValue(suara);
+//        active = 0;
+//      }
+//      if(resultCode == RESULT_OK && null !=data && Pesan){
+//        final ArrayList <String> MasukkanSuaraAnda = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+//        suara = MasukkanSuaraAnda.get(0);
+//        Kirimpesan(suara);
+//        active=0;
+//        Pesan = false;
+//
+//      }
+//      break;
+//      }
+//    }
+//  }
   
   @Override public void onDestroy()
   {
@@ -318,6 +356,10 @@ public class MainActivity extends Activity
   private void handleClick(float x, float y)
   {
     Log.d(TAG, String.format(Locale.ENGLISH, "Click at ( %.2f, %.2f)", x, y));
+//    float posisiX = 0.0F;
+//    float posisiY = 0.0F;
+//    posisiX = (float) 15.11;
+//    posisiY = (float) 12.41;
     
     if (mLocation == null || mCurrentSubLocationIndex < 0)
       return;
@@ -359,6 +401,8 @@ public class MainActivity extends Activity
         mTargetVenue = mSelectedVenue;
         mTargetPoint = null;
         mNavigation.setTarget(new LocationPoint(mLocation.getId(), subLoc.getId(), mTargetVenue.getX(), mTargetVenue.getY()));
+//        Log.d(TAG, String.format(Locale.ENGLISH, "Posisi Venue ( %.2f, %.2f)",mTargetVenue.getX(), mTargetVenue.getY()));
+//        mNavigation.setTarget(new LocationPoint(mLocation.getId(), subLoc.getId(), posisiX, posisiY));
         mBackView.setVisibility(View.VISIBLE);
       }
       cancelVenue();
@@ -466,12 +510,13 @@ public class MainActivity extends Activity
       switch (mDeviceInfo.getErrorCode())
       {
         case 4:
-          setErrorMessage("You are out of navigation zone! Please, check that your bluetooth is enabled!");
+          setErrorMessage(String.format(Locale.ENGLISH,"You are out of navigation zone! Please, check that your bluetooth is enabled!"));
+//          speak("You are out of navigation zone! Please, check that your bluetooth is enabled!");
           break;
         
         case 8:
         case 30:
-          setErrorMessage("Not enough beacons on the location! Please, add more beacons!");
+          setErrorMessage(String.format(Locale.ENGLISH,"Not enough beacons on the location! Please, add more beacons!"));
           break;
         
         default:
@@ -481,16 +526,27 @@ public class MainActivity extends Activity
                           mLocation.getName(), mDeviceInfo.getErrorCode()));
           break;
       }
+//      String peringatan1 = String.;
+//      speak(peringatan1);
     }
-    
+
     // This causes map redrawing
     mLocationView.redraw();
+
   }
   
   private void setErrorMessage(String message)
   {
     mErrorMessageLabel.setText(message);
+//    String peringatan1 = mErrorMessageLabel.getText().toString();
+//    speak(peringatan1);
+//
+//    if ( !peringatan1.equals(peringatan2) )
+//      speak(peringatan1);
+//
+//    peringatan2 = peringatan1;
     mErrorMessageLabel.setVisibility(View.VISIBLE);
+
   }
   
   private void cancelErrorMessage()
@@ -1026,22 +1082,75 @@ public class MainActivity extends Activity
 
   private void showDirections(RoutePath path)
   {
+//    u = speak(speakjarak + speak belok);
+
     switch (path.getEvents().get(0).getType())
     {
       case RouteEvent.TURN_LEFT:
         mDirectionBelokView.setText(String.format(new Locale("id", "ID"),"Belok Kiri"));
-        speak("Belok Kiri");
+//        speak("Belok Kiri");
         break;
       case RouteEvent.TURN_RIGHT:
         mDirectionBelokView.setText(String.format(new Locale("id", "ID"),"Belok Kanan"));
-        speak("Belok Kanan");
+//        speak("Belok Kanan");
         break;
     }
     float nextTurnDistance = Math.max(path.getEvents().get(0).getDistance(), 1);
     mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%.0f m", nextTurnDistance));
-    speak("%.0f meter");
+    String speakbelok = mDirectionBelokView.getText().toString();
+    String speakjarak = mDirectionTextView.getText().toString();
+    String speak1 = speakbelok + speakjarak ;
+
+    if ( !speak1.equals(speak2) )
+      speak(speak1);
+
+    speak2 = speak1;
+
     mDirectionLayout.setVisibility(View.VISIBLE);
   }
+//private void showDirections(RoutePath path)
+//{
+//  String belok ="", jarak ="";
+//  switch (path.getEvents().get(0).getType())
+//  {
+//    case RouteEvent.TURN_LEFT:
+//      mDirectionBelokView.setText(String.format(new Locale("id", "ID"),"Belok Kiri"));
+//      belok ="Belok Kiri";
+//      //speak("Belok Kiri");
+//      break;
+//    case RouteEvent.TURN_RIGHT:
+//      mDirectionBelokView.setText(String.format(new Locale("id", "ID"),"Belok Kanan"));
+//      belok ="Belok Kanan";
+//      //speak("Belok Kanan");
+//      break;
+//  }
+//  float nextTurnDistance = Math.max(path.getEvents().get(0).getDistance(), 1);
+//  mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%.0f m", nextTurnDistance));
+//  jarak = "%.0f meter";
+//  speak(belok +" "+ jarak);
+//  //speak("%.0f meter");
+//  mDirectionLayout.setVisibility(View.VISIBLE);
+//}
+
+//  private void showDirections(RoutePath path)
+//  {
+//    String mDirectionBelokView = String.valueOf(path.getEvents().get(0).getType());
+//    float nextTurnDistance = Math.max(path.getEvents().get(0).getDistance(), 1);
+//    String mDirectionTextView = String.valueOf(nextTurnDistance);
+//
+//      if (RouteEvent.TURN_LEFT == 1){
+//        mDirectionBelokView.indexOf(String.format(new Locale("id", "ID"),"Belok Kiri"));
+//        mDirectionTextView.indexOf(String.format(new Locale ( "id", "ID"),"%.0f m", nextTurnDistance));
+//        speak(mDirectionBelokView + mDirectionTextView);
+//        mDirectionLayout.setVisibility(View.VISIBLE);
+//    }else if(RouteEvent.TURN_LEFT == 1){
+//        mDirectionBelokView.indexOf(String.format(new Locale("id", "ID"),"Belok Kanan"));
+//        mDirectionTextView.indexOf(String.format(new Locale ( "id", "ID"),"%.0f m", nextTurnDistance));
+//        speak(mDirectionBelokView + mDirectionTextView);
+//        mDirectionLayout.setVisibility(View.VISIBLE);
+//    }
+//
+//  }
 
   private void speak(String message){
     if(Build.VERSION.SDK_INT>=21){
