@@ -106,7 +106,7 @@ public class MainActivity extends Activity
   private String speak2 = null;
   private String peringatan2 = null;
 
-
+//test git
   @Override protected void onCreate(Bundle savedInstanceState)
   {
     Log.d(TAG, "MainActivity started");
