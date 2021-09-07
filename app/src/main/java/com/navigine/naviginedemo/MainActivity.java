@@ -106,7 +106,7 @@ public class MainActivity extends Activity
   private String speak2 = null;
   private String peringatan2 = null;
 
-//test git, test git2, test git3
+//test git, test git2, test git3, test git4
   @Override protected void onCreate(Bundle savedInstanceState)
   {
     Log.d(TAG, "MainActivity started");
