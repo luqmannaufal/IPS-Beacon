@@ -106,7 +106,7 @@ public class MainActivity extends Activity
   private String speak2 = null;
   private String peringatan2 = null;
 
-//test git
+//test git test git2
   @Override protected void onCreate(Bundle savedInstanceState)
   {
     Log.d(TAG, "MainActivity started");
@@ -1099,7 +1099,7 @@ public class MainActivity extends Activity
     mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%.0f m", nextTurnDistance));
     String speakbelok = mDirectionBelokView.getText().toString();
     String speakjarak = mDirectionTextView.getText().toString();
-    String speak1 = speakbelok + speakjarak ;
+    String speak1 = speakbelok + "setelah" + speakjarak ;
 
     if ( !speak1.equals(speak2) )
       speak(speak1);
