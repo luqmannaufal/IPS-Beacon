@@ -45,6 +45,11 @@
                 android:textColor="#152D47"
                 android:textSize="22sp"/>
 
+<!--            <TextView-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:id="@+id/pesan"/>-->
+
         </RelativeLayout>
 
         <TextView android:id="@+id/navigation__info_label"

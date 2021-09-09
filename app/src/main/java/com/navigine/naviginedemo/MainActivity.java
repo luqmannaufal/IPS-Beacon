@@ -2,12 +2,15 @@ package com.navigine.naviginedemo;
 
 import android.app.*;
 import android.content.*;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.*;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.*;
+import android.provider.BaseColumns;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
@@ -34,7 +37,10 @@ import android.os.Vibrator;
 import org.w3c.dom.Text;
 
 public class MainActivity extends Activity
+
 {
+
+
   private static final String   TAG                     = "NAVIGINE.Demo";
   private static final String   NOTIFICATION_CHANNEL    = "NAVIGINE_DEMO_NOTIFICATION_CHANNEL";
   private static final int      UPDATE_TIMEOUT          = 100;  // milliseconds
@@ -45,7 +51,7 @@ public class MainActivity extends Activity
   
   // NavigationThread instance
   private NavigationThread mNavigation            = null;
-
+//coba
   // UI Parameters
   private LocationView  mLocationView             = null;
   private Button        mPrevFloorButton          = null;
@@ -85,6 +91,7 @@ public class MainActivity extends Activity
   private Zone    mSelectedZone   = null;
 
   private String suara;
+//  private TextView pesanTextView;
 
   private TextToSpeech myTTS;
 
@@ -107,6 +114,8 @@ public class MainActivity extends Activity
   private Vibrator getar; //marai geter
   private String speak2 = null;
   private String peringatan2 = null;
+
+//  private Kos MyDatabase;
 
 //test git, test git2, test git3, test git4
   @Override protected void onCreate(Bundle savedInstanceState)
@@ -147,6 +156,8 @@ public class MainActivity extends Activity
     
     mVenueBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.elm_venue);
 
+//    MyDatabase = new Kos(getBaseContext());
+
     sensorManager = (SensorManager) this.getSystemService(SENSOR_SERVICE);
     mySensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
     sensorManager.registerListener(sensorListener, mySensor, SensorManager.SENSOR_DELAY_NORMAL);
@@ -156,6 +167,7 @@ public class MainActivity extends Activity
     shake = 0.00f;
 
     getar = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+//    pesanTextView = (TextView) findViewById(R.id.pesan);
 
 
 
@@ -246,19 +258,22 @@ public class MainActivity extends Activity
     }
   }
 
-//  protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-//  super.onActivityResult(requestCode, resultCode, data);
-//
-//  switch (requestCode) {
-//
-//    case RESULT_SPEECH: {
-//      if (resultCode == RESULT_OK && null != data) {
-//        final ArrayList<String> MasukkanSuaraAnda = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-//        suara = MasukkanSuaraAnda.get(0);
+  protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+  super.onActivityResult(requestCode, resultCode, data);
+//  pesanTextView = findViewById(R.id.pesan);
+
+  switch (requestCode) {
+
+    case RESULT_SPEECH: {
+      if (resultCode == RESULT_OK && null != data) {
+        final ArrayList<String> MasukkanSuaraAnda = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+//        TextView pesan = (TextView) findViewById(R.id.pesan);
+//        pesan.setText(MasukkanSuaraAnda.get(0));
+        suara = MasukkanSuaraAnda.get(0);
 //        dialog(suara);
 //        mDatabaseReference.child("Voice").setValue(suara);
-//        active = 0;
-//      }
+        active = 0;
+      }
 //      if(resultCode == RESULT_OK && null !=data && Pesan){
 //        final ArrayList <String> MasukkanSuaraAnda = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
 //        suara = MasukkanSuaraAnda.get(0);
@@ -267,10 +282,34 @@ public class MainActivity extends Activity
 //        Pesan = false;
 //
 //      }
-//      break;
-//      }
-//    }
-//  }
+      break;
+      }
+    }
+  }
+
+  public void caribarang(String suara){
+//      FeedReaderDbHelper dbHelper = new FeedReaderDbHelper(getContext());
+//      SQLiteDatabase db = DatabaseOpenHelper.getReadableDatabase();
+//
+//      String[] projection = {
+//              BaseColumns._ID,
+//              //DatabaseOpenHelper.Kos,
+//              DatabaseOpenHelper.Nama,
+//              DatabaseOpenHelper.KoorX,
+//              DatabaseOpenHelper.KoorY
+//      };
+//
+//      String selection = DatabaseOpenHelper.Kos + "= ?";
+//      String[] selectionArgs = { "koorX", "koorY"};
+//
+//      String sortOrder = FeedEntry.Nama + "DESC";
+//
+//      Cursor cursor = db.query(
+//              FeedEntry.Kos,
+//      );
+
+  }
+
   
   @Override public void onDestroy()
   {
@@ -354,6 +393,13 @@ public class MainActivity extends Activity
     mDirectionLayout.setVisibility(GONE);
     mLocationView.redraw();
   }
+   public void getKoorX(){
+      DatabaseOpenHelper mydb = new DatabaseOpenHelper(this);
+      mydb.getDatabaseName();
+
+//     SQLiteDatabase ReadData =
+
+   }
 
   private void handleClick(float x, float y)
   {
@@ -372,6 +418,7 @@ public class MainActivity extends Activity
     
     if (mPinPoint != null)
     {
+
       if (mPinPointRect != null && mPinPointRect.contains(x, y))
       {
         mTargetPoint  = mPinPoint;
