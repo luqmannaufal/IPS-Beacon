@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/IPS-Beacon.iml" filepath="$PROJECT_DIR$/.idea/modules/IPS-Beacon.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/IPS-Beacon.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/IPS-Beacon.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/bismillah.iml" filepath="$PROJECT_DIR$/.idea/modules/bismillah.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/bismillah.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/bismillah.app.iml" />
     </modules>
   </component>
 </project>
