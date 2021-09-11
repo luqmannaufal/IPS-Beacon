@@ -27,6 +27,7 @@ import java.nio.FloatBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+import com.navigine.naviginedemo.sqlitehelper.DataHelper;
 import com.navigine.naviginesdk.*;
 
 import static android.view.View.GONE;
@@ -39,6 +40,7 @@ import android.os.Vibrator;
 
 import org.w3c.dom.Text;
 
+
 public class MainActivity extends Activity
 {
   private static final String   TAG                     = "NAVIGINE.Demo";
@@ -48,7 +50,7 @@ public class MainActivity extends Activity
   private static final int      ERROR_MESSAGE_TIMEOUT   = 5000; // milliseconds
   private static final boolean  ORIENTATION_ENABLED     = true; // Show device orientation?
   private static final boolean  NOTIFICATIONS_ENABLED   = true; // Show zone notifications?
-  
+
   // NavigationThread instance
   private NavigationThread mNavigation            = null;
 
@@ -114,28 +116,31 @@ public class MainActivity extends Activity
   private String speak2 = null;
   private String peringatan2 = null;
 
-  private static final String DATABASE_NAME="Kos.db";
+//  private static final String DATABASE_NAME="Kos.db";
+//
+//  private SQLiteOpenHelper openHelper;
+//  private SQLiteDatabase db;
+//  private static DatabaseAccess instance;
+//  Cursor c = null;
 
-  private SQLiteOpenHelper openHelper;
-  private SQLiteDatabase db;
-  private static DatabaseAccess instance;
-  Cursor c = null;
+  DataHelper dbHelper;
+  protected Cursor cursor;
 
 //  public DatabaseOpenHelper (Context context){
 //    super (context, DATABASE_NAME, null, DATABASE_VERSION);
 //  }
 
-//test git, test git2, test git3, test git4
+  //test git, test git2, test git3, test git4
   @Override protected void onCreate(Bundle savedInstanceState)
   {
     Log.d(TAG, "MainActivity started");
-    
+
     super.onCreate(savedInstanceState);
     requestWindowFeature(Window.FEATURE_NO_TITLE);
     setContentView(R.layout.activity_main);
 
     getWindow().setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,
-                         WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
 
     // Setting up GUI parameters
     mBackView = (View)findViewById(R.id.navigation__back_view);
@@ -161,7 +166,7 @@ public class MainActivity extends Activity
     mZoomOutView.setVisibility(View.INVISIBLE);
     mAdjustModeView.setVisibility(View.INVISIBLE);
     mErrorMessageLabel.setVisibility(View.GONE);
-    
+
     mVenueBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.elm_venue);
 
     sensorManager = (SensorManager) this.getSystemService(SENSOR_SERVICE);
@@ -175,113 +180,145 @@ public class MainActivity extends Activity
     getar = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 
 //    DatabaseOpenHelper dbHelper = new DatabaseOpenHelper(Context context);
-
+    dbHelper = new DataHelper(this);
 
 
     textToSpeech();
-    
+
+
     // Initializing location view
     mLocationView = (LocationView)findViewById(R.id.navigation__location_view);
     mLocationView.setBackgroundColor(0xffebebeb);
     mLocationView.setListener
-    (
-      new LocationView.Listener()
-      {
+            (
+                    new LocationView.Listener()
+                    {
 
-        @Override public void onClick     ( float KoorX, float KoorY ) { tanpaklik(KoorX, KoorY);     }
-//        @Override public void onClick     ( float x, float y ) { handleClick(x, y);     }
-        @Override public void onLongClick ( float x, float y ) { handleLongClick(x, y); }
-        @Override public void onScroll    ( float x, float y, boolean byTouchEvent ) { handleScroll ( x, y,  byTouchEvent ); }
-        @Override public void onZoom      ( float ratio,      boolean byTouchEvent ) { handleZoom   ( ratio, byTouchEvent ); }
-        
-        @Override public void onDraw(Canvas canvas)
-        {
-          drawZones(canvas);
-          drawPoints(canvas);
-          drawVenues(canvas);
-          drawDevice(canvas);
-        }
-      }
-    );
+                      @Override public void onClick     ( float x, float y ) { tanpaKlik(x, y);     }
+                      //        @Override public void onClick     ( float x, float y ) { handleClick(x, y);     }
+                      @Override public void onLongClick ( float x, float y ) { handleLongClick(x, y); }
+                      @Override public void onScroll    ( float x, float y, boolean byTouchEvent ) { handleScroll ( x, y,  byTouchEvent ); }
+                      @Override public void onZoom      ( float ratio,      boolean byTouchEvent ) { handleZoom   ( ratio, byTouchEvent ); }
+
+                      @Override public void onDraw(Canvas canvas)
+                      {
+                        drawZones(canvas);
+                        drawPoints(canvas);
+                        drawVenues(canvas);
+                        drawDevice(canvas);
+                      }
+                    }
+            );
 
     mNavigation = NavigineSDK.getNavigation();
-    
+
     // Loading map only when location view size is known
     mLocationView.addOnLayoutChangeListener
-    (
-      new OnLayoutChangeListener()
-      {
-        @Override public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom)
-        {
-          int width  = right  - left;
-          int height = bottom - top;
-          if (width == 0 || height == 0)
-            return;
-          
-          Log.d(TAG, "Layout changed: " + width + "x" + height);
-          
-          int oldWidth  = oldRight  - oldLeft;
-          int oldHeight = oldBottom - oldTop;
-          if (oldWidth != width || oldHeight != height)
-            loadMap();
-        }
-      }
-    );
-    
+            (
+                    new OnLayoutChangeListener()
+                    {
+                      @Override public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom)
+                      {
+                        int width  = right  - left;
+                        int height = bottom - top;
+                        if (width == 0 || height == 0)
+                          return;
+
+                        Log.d(TAG, "Layout changed: " + width + "x" + height);
+
+                        int oldWidth  = oldRight  - oldLeft;
+                        int oldHeight = oldBottom - oldTop;
+                        if (oldWidth != width || oldHeight != height)
+                          loadMap();
+                      }
+                    }
+            );
+
     mDisplayDensity = getResources().getDisplayMetrics().density;
     mDirectionLayout.setVisibility(GONE);
-    
+
     // Setting up device listener
     if (mNavigation != null)
     {
       mNavigation.setDeviceListener
-      (
-        new DeviceInfo.Listener()
-        {
-          @Override public void onUpdate(DeviceInfo info) { handleDeviceUpdate(info); }
-        }
-      );
+              (
+                      new DeviceInfo.Listener()
+                      {
+                        @Override public void onUpdate(DeviceInfo info) { handleDeviceUpdate(info); }
+                      }
+              );
     }
-    
+
     // Setting up zone listener
     if (mNavigation != null)
     {
       mNavigation.setZoneListener
-      (
-        new Zone.Listener()
-        {
-          @RequiresApi(api = Build.VERSION_CODES.O)
-          @Override public void onEnterZone(Zone z) { handleEnterZone(z); }
-          @Override public void onLeaveZone(Zone z) { handleLeaveZone(z); }
-        }
-      );
+              (
+                      new Zone.Listener()
+                      {
+                        @RequiresApi(api = Build.VERSION_CODES.O)
+                        @Override public void onEnterZone(Zone z) { handleEnterZone(z); }
+                        @Override public void onLeaveZone(Zone z) { handleLeaveZone(z); }
+                      }
+              );
     }
-    
+
     if (NOTIFICATIONS_ENABLED)
     {
       NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
       if (Build.VERSION.SDK_INT >= 26)
         notificationManager.createNotificationChannel(new NotificationChannel(NOTIFICATION_CHANNEL, "default",
-                                                                              NotificationManager.IMPORTANCE_LOW));
+                NotificationManager.IMPORTANCE_LOW));
     }
   }
 
+  private void RefreshDataPosisi(String namaBarang){
+    SQLiteDatabase db = dbHelper.getReadableDatabase();
+    cursor = db.rawQuery("SELECT nama, posisix, posisiy FROM lokasi WHERE nama LIKE '%"+ namaBarang +"%'LIMIT 1", null);
+//    Integer jmlRecord = cursor.getCount();
+//    String[] daftar = new String[jmlRecord];
+    cursor.moveToFirst();
+//
+    if(cursor.getCount() > 0 ){
+      cursor.moveToPosition(0);
+      String  namaPosisi = cursor.getString(0).toString();
+      float  x =  cursor.getFloat(1);
+      float  y =  cursor.getFloat(2);
+      //Log.d(TAG, String.format(Locale.ENGLISH, "koordinatXY ( %.2f, %.2f)", posisiX, posisiY));
+      showToastMessage( String.format(Locale.ENGLISH, "koordinatXY ( %.2f, %.2f)", x, y));
+
+      tanpaKlik(x, y);
+//    if(cursor.getCount() > 0 ){
+//      cursor.moveToPosition(0);
+//      String  namaPosisi = cursor.getString(0).toString();
+//      float  posisiX =  cursor.getFloat(1);
+//      float  posisiY =  cursor.getFloat(2);
+//      //Log.d(TAG, String.format(Locale.ENGLISH, "koordinatXY ( %.2f, %.2f)", posisiX, posisiY));
+//      showToastMessage( String.format(Locale.ENGLISH, "koordinatXY ( %.2f, %.2f)", posisiX, posisiY));
+//
+//      tanpaKlik(posisiX, posisiY);
+
+    }
+
+
+  }
   protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-  super.onActivityResult(requestCode, resultCode, data);
+    super.onActivityResult(requestCode, resultCode, data);
 
-  switch (requestCode) {
+    switch (requestCode) {
 
-    case RESULT_SPEECH: {
-      if (resultCode == RESULT_OK && null != data) {
-        final ArrayList<String> MasukkanSuaraAnda = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-        suara = MasukkanSuaraAnda.get(0);
+      case RESULT_SPEECH: {
+        if (resultCode == RESULT_OK && null != data) {
+          final ArrayList<String> MasukkanSuaraAnda = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+          suara = MasukkanSuaraAnda.get(0);
 //        Log.d(TAG, String.format(Locale.ENGLISH, "hasilsuara (%s)", suara));
-        caribarang(suara);
+          RefreshDataPosisi(suara);
+          //cariBarang(suara);
 //        String s = suara.getBytes(StandardCharsets.UTF_8).toString();
 //        dialog(suara);
 //        mDatabaseReference.child("Voice").setValue(suara);
-        active = 0;
-      }
+          active = 0;
+        }
 //      if(resultCode == RESULT_OK && null !=data && Pesan){
 //        final ArrayList <String> MasukkanSuaraAnda = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
 //        suara = MasukkanSuaraAnda.get(0);
@@ -290,35 +327,35 @@ public class MainActivity extends Activity
 //        Pesan = false;
 //
 //      }
-      break;
+        break;
       }
     }
   }
 
 
-  public void caribarang(String suara){
+//  public void cariBarang(String suara){
 //      FeedReaderDbHelper dbHelper = new FeedReaderDbHelper(getContext());
-    DatabaseAccess databaseAccess = DatabaseAccess.getInstance(getApplicationContext());
-    databaseAccess.open();
+//    DatabaseAccess databaseAccess = DatabaseAccess.getInstance(getApplicationContext());
+//    databaseAccess.open();
 
-    String s = suara;
+//    String s = suara;
 //    Log.d(TAG, String.format(Locale.ENGLISH, "suaranya ( %s )", s));
 
 //    List KoorXYs = new ArrayList<>();
-    Float KoorX = databaseAccess.getKoorX(s);
-    Float KoorY = databaseAccess.getKoorY(s);
+    //Float KoorX = databaseAccess.getKoorX(s);
+    //Float KoorY = databaseAccess.getKoorY(s);
 //    Float KoorX = (Float) KoorXYs.get(0);
 //    Float KoorY = (Float) KoorXYs.get(1);
 //    boolean KoorX = KoorXYs.add(0);
 //    boolean KoorY = KoorXYs.add(1);
-    Log.d(TAG, String.format(Locale.ENGLISH, "koordinatXY ( %.2f, %.2f)", KoorX, KoorY));
+//    Log.d(TAG, String.format(Locale.ENGLISH, "koordinatXY ( %.2f, %.2f)", KoorX, KoorY));
 
-//    tanpaklik(KoorX, KoorY);
-//    tanpaklik(243.00f, 1056.00f);
+//    tanpaklik(posisiX, posisiY);
+//      tanpaKlik(243.00f, 1056.00f);
 
 //    databaseAccess.close();
 
-  }
+//  }
 //    c=db.rawQuery("select KoorX from Lantai1 where namaVenue = '"+suara+"'", new String[]{});
 //    FloatBuffer buffer = new FloatBuffer();
 
@@ -341,7 +378,7 @@ public class MainActivity extends Activity
 //      );
 
 
-  
+
   @Override public void onDestroy()
   {
     if (mNavigation != null)
@@ -349,7 +386,7 @@ public class MainActivity extends Activity
       NavigineSDK.finish();
       mNavigation = null;
     }
-    
+
     super.onDestroy();
   }
 
@@ -357,15 +394,15 @@ public class MainActivity extends Activity
   {
     moveTaskToBack(true);
   }
-  
+
   public void toggleAdjustMode(View v)
   {
     mAdjustMode = !mAdjustMode;
     mAdjustTime = 0;
     Button adjustModeButton = (Button)findViewById(R.id.navigation__adjust_mode_button);
     adjustModeButton.setBackgroundResource(mAdjustMode ?
-                                           R.drawable.btn_adjust_mode_on :
-                                           R.drawable.btn_adjust_mode_off);
+            R.drawable.btn_adjust_mode_on :
+            R.drawable.btn_adjust_mode_off);
     mLocationView.redraw();
   }
 
@@ -435,85 +472,14 @@ public class MainActivity extends Activity
 //    posisiY = (float) 12.41;
     if (mLocation == null || mCurrentSubLocationIndex < 0)
       return;
-    
+
     SubLocation subLoc = mLocation.getSubLocations().get(mCurrentSubLocationIndex);
     if (subLoc == null)
       return;
-    
+
     if (mPinPoint != null)
     {
       if (mPinPointRect != null && mPinPointRect.contains(x, y))
-      {
-        mTargetPoint  = mPinPoint;
-        mTargetVenue  = null;
-        mPinPoint     = null;
-        mPinPointRect = null;
-        mNavigation.setTarget(mTargetPoint);
-        mBackView.setVisibility(View.VISIBLE);
-        return;
-      }
-      cancelPin();
-      return;
-    }
-    
-//    if (mSelectedVenue.getSubLocationId() != subLoc.getId())
-//    {
-//      for(int i = 0; i < mLocation.getSubLocations().size();)
-//        if (mLocation.getSubLocations().get(i).getId() == mSelectedVenue.getSubLocationId() && mSelectedVenueRect.contains(x, y))
-//        {
-//          mTargetVenue = mSelectedVenue;
-//          mTargetPoint = null;
-//          mNavigation.setTarget(new LocationPoint(mSelectedVenue.getSubLocationId(), subLoc.getId(), mTargetVenue.getX(), mTargetVenue.getY()));
-//          mBackView.setVisibility(View.VISIBLE);
-//        }
-        if (mSelectedVenue != null)
-        {
-      if (mSelectedVenueRect != null && mSelectedVenueRect.contains( x, y))
-      {
-        mTargetVenue = mSelectedVenue;
-        mTargetPoint = null;
-        mNavigation.setTarget(new LocationPoint(mLocation.getId(), subLoc.getId(), mTargetVenue.getX(), mTargetVenue.getY()));
-        Log.d(TAG, String.format(Locale.ENGLISH, "Posisi Venue ( %.2f, %.2f)",mTargetVenue.getX(), mTargetVenue.getY()));
-//        mNavigation.setTarget(new LocationPoint(mLocation.getId(), subLoc.getId(), posisiX, posisiY));
-        mBackView.setVisibility(View.VISIBLE);
-      }
-      cancelVenue();
-      return;
-    }
-    
-    // Check if we touched venue
-    mSelectedVenue = getVenueAt( x, y);
-    mSelectedVenueRect = new RectF();
-    
-    // Check if we touched zone
-    if (mSelectedVenue == null)
-    {
-      Zone Z = getZoneAt(x, y);
-      if (Z != null)
-        mSelectedZone = (mSelectedZone == Z) ? null : Z;
-    }
-    
-    mLocationView.redraw();
-  }
-
-  private void tanpaklik(float KoorX, float KoorY)
-  {
-    Log.d(TAG, String.format(Locale.ENGLISH, "Click at ( %.2f, %.2f)", KoorX, KoorY));
-//    float posisiX = 0.0F;
-//    float posisiY = 0.0F;
-//    posisiX = (float) 15.11;
-//    posisiY = (float) 12.41;
-//    posisiY = (float) 12.41;
-    if (mLocation == null || mCurrentSubLocationIndex < 0)
-      return;
-
-    SubLocation subLoc = mLocation.getSubLocations().get(mCurrentSubLocationIndex);
-    if (subLoc == null)
-      return;
-
-    if (mPinPoint != null)
-    {
-      if (mPinPointRect != null && mPinPointRect.contains(KoorX, KoorY))
       {
         mTargetPoint  = mPinPoint;
         mTargetVenue  = null;
@@ -539,7 +505,7 @@ public class MainActivity extends Activity
 //        }
     if (mSelectedVenue != null)
     {
-      if (mSelectedVenueRect != null && mSelectedVenueRect.contains( KoorX, KoorY))
+      if (mSelectedVenueRect != null && mSelectedVenueRect.contains( x, y))
       {
         mTargetVenue = mSelectedVenue;
         mTargetPoint = null;
@@ -553,39 +519,111 @@ public class MainActivity extends Activity
     }
 
     // Check if we touched venue
-    mSelectedVenue = getVenueAt( KoorX, KoorY);
+    mSelectedVenue = getVenueAt( x, y);
     mSelectedVenueRect = new RectF();
 
     // Check if we touched zone
     if (mSelectedVenue == null)
     {
-      Zone Z = getZoneAt(KoorX, KoorY);
+      Zone Z = getZoneAt(x, y);
       if (Z != null)
         mSelectedZone = (mSelectedZone == Z) ? null : Z;
     }
 
     mLocationView.redraw();
   }
-  
+
+  private void tanpaKlik(float x, float y)
+  {
+    Log.d(TAG, String.format(Locale.ENGLISH, "Click at ( %.2f, %.2f)", x, y));
+//    float posisiX = 0.0F;
+//    float posisiY = 0.0F;
+//    posisiX = (float) 15.11;
+//    posisiY = (float) 12.41;
+//    posisiY = (float) 12.41;
+    if (mLocation == null || mCurrentSubLocationIndex < 0)
+      return;
+
+    SubLocation subLoc = mLocation.getSubLocations().get(mCurrentSubLocationIndex);
+    if (subLoc == null)
+      return;
+
+    if (mPinPoint != null)
+    {
+      if (mPinPointRect != null && mPinPointRect.contains(x, y))
+      {
+        mTargetPoint  = mPinPoint;
+        mTargetVenue  = null;
+        mPinPoint     = null;
+        mPinPointRect = null;
+        mNavigation.setTarget(mTargetPoint);
+        mBackView.setVisibility(View.VISIBLE);
+        return;
+      }
+      cancelPin();
+      return;
+    }
+
+//    if (mSelectedVenue.getSubLocationId() != subLoc.getId())
+//    {
+//      for(int i = 0; i < mLocation.getSubLocations().size();)
+//        if (mLocation.getSubLocations().get(i).getId() == mSelectedVenue.getSubLocationId() && mSelectedVenueRect.contains(x, y))
+//        {
+//          mTargetVenue = mSelectedVenue;
+//          mTargetPoint = null;
+//          mNavigation.setTarget(new LocationPoint(mSelectedVenue.getSubLocationId(), subLoc.getId(), mTargetVenue.getX(), mTargetVenue.getY()));
+//          mBackView.setVisibility(View.VISIBLE);
+//        }
+    if (mSelectedVenue != null)
+    {
+      if (mSelectedVenueRect != null && mSelectedVenueRect.contains( x, y))
+      {
+        mTargetVenue = mSelectedVenue;
+        mTargetPoint = null;
+        mNavigation.setTarget(new LocationPoint(mLocation.getId(), subLoc.getId(), mTargetVenue.getX(), mTargetVenue.getY()));
+        Log.d(TAG, String.format(Locale.ENGLISH, "Posisi Venue ( %.2f, %.2f)",mTargetVenue.getX(), mTargetVenue.getY()));
+//        mNavigation.setTarget(new LocationPoint(mLocation.getId(), subLoc.getId(), posisiX, posisiY));
+        mBackView.setVisibility(View.VISIBLE);
+      }
+      cancelVenue();
+      return;
+    }
+
+    // Check if we touched venue
+    mSelectedVenue = getVenuedi( x, y);
+    mSelectedVenueRect = new RectF();
+
+    // Check if we touched zone
+//    if (mSelectedVenue == null)
+//    {
+//      Zone Z = getZoneAt(posisiX, posisiY);
+//      if (Z != null)
+//        mSelectedZone = (mSelectedZone == Z) ? null : Z;
+//    }
+
+    mLocationView.redraw();
+  }
+
+
   private void handleLongClick(float x, float y)
   {
     Log.d(TAG, String.format(Locale.ENGLISH, "Long click at (%.2f, %.2f)", x, y));
     makePin(mLocationView.getAbsCoordinates(x, y));
     cancelVenue();
   }
-  
+
   private void handleScroll(float x, float y, boolean byTouchEvent)
   {
     if (byTouchEvent)
       mAdjustTime = NavigineSDK.currentTimeMillis() + ADJUST_TIMEOUT;
   }
-  
+
   private void handleZoom(float ratio, boolean byTouchEvent)
   {
     if (byTouchEvent)
       mAdjustTime = NavigineSDK.currentTimeMillis() + ADJUST_TIMEOUT;
   }
-  
+
   @RequiresApi(api = Build.VERSION_CODES.O)
   private void handleEnterZone(Zone z)
   {
@@ -597,7 +635,7 @@ public class MainActivity extends Activity
       notificationIntent.putExtra("zone_name",  z.getName());
       notificationIntent.putExtra("zone_color", z.getColor());
       notificationIntent.putExtra("zone_alias", z.getAlias());
-      
+
       // Setting up a notification
       Notification.Builder notificationBuilder = new Notification.Builder(this, NOTIFICATION_CHANNEL);
       notificationBuilder.setContentIntent(PendingIntent.getActivity(this, z.getId(), notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT));
@@ -605,13 +643,13 @@ public class MainActivity extends Activity
       notificationBuilder.setContentText("You have entered zone '" + z.getName() + "'");
       notificationBuilder.setSmallIcon(R.drawable.elm_logo);
       notificationBuilder.setAutoCancel(true);
-      
+
       // Posting a notification
       NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
       notificationManager.notify(z.getId(), notificationBuilder.build());
     }
   }
-  
+
   private void handleLeaveZone(Zone z)
   {
     Log.d(TAG, "Leave zone " + z.getName());
@@ -621,13 +659,13 @@ public class MainActivity extends Activity
       notificationManager.cancel(z.getId());
     }
   }
-  
+
   private void handleDeviceUpdate(DeviceInfo deviceInfo)
   {
     mDeviceInfo = deviceInfo;
     if (mDeviceInfo == null)
       return;
-    
+
     // Check if location is loaded
     if (mLocation == null || mCurrentSubLocationIndex < 0)
       return;
@@ -638,12 +676,12 @@ public class MainActivity extends Activity
     }
     else
       mDirectionLayout.setVisibility(GONE);
-    
+
     if (mDeviceInfo.isValid())
     {
       cancelErrorMessage();
       mBackView.setVisibility(mTargetPoint != null || mTargetVenue != null ?
-                              View.VISIBLE : View.GONE);
+              View.VISIBLE : View.GONE);
       if (mAdjustMode)
         adjustDevice();
     }
@@ -655,7 +693,7 @@ public class MainActivity extends Activity
         case 4:
           setErrorMessage(String.format(new Locale ("id", "ID"),"Anda keluar dari zona navigasi! Tolong, periksa apakah bluetooth Anda diaktifkan!"));
 //          speak("You are out of navigation zone! Please, check that your bluetooth is enabled!");
-          speak("Anda keluar dari zona navigasi! Tolong, periksa apakah bluetooth Anda diaktifkan!");
+          //speak("Anda keluar dari zona navigasi! Tolong, periksa apakah bluetooth Anda diaktifkan!");
 
           break;
 
@@ -664,12 +702,12 @@ public class MainActivity extends Activity
           setErrorMessage(String.format(new Locale ("id", "ID"),"Not enough beacons on the location! Please, add more beacons!"));
 
           break;
-        
+
         default:
           setErrorMessage(String.format(new Locale ("id", "ID"),
-                          "Something is wrong with location '%s' (error code %d)! " +
+                  "Something is wrong with location '%s' (error code %d)! " +
                           "Please, contact technical support!",
-                          mLocation.getName(), mDeviceInfo.getErrorCode()));
+                  mLocation.getName(), mDeviceInfo.getErrorCode()));
           break;
       }
 //      String peringatan1 = String.valueOf(mDeviceInfo.getErrorCode());
@@ -680,7 +718,7 @@ public class MainActivity extends Activity
     mLocationView.redraw();
 
   }
-  
+
   private void setErrorMessage(String message)
   {
     mErrorMessageLabel.setText(message);
@@ -694,12 +732,12 @@ public class MainActivity extends Activity
     mErrorMessageLabel.setVisibility(View.VISIBLE);
 
   }
-  
+
   private void cancelErrorMessage()
   {
     mErrorMessageLabel.setVisibility(View.GONE);
   }
-  
+
   private boolean loadMap()
   {
     if (mNavigation == null)
@@ -707,30 +745,30 @@ public class MainActivity extends Activity
       Log.e(TAG, "Can't load map! Navigine SDK is not available!");
       return false;
     }
-    
+
     mLocation = mNavigation.getLocation();
     mCurrentSubLocationIndex = -1;
-    
+
     if (mLocation == null)
     {
       Log.e(TAG, "Loading map failed: no location");
       return false;
     }
-    
+
     if (mLocation.getSubLocations().size() == 0)
     {
       Log.e(TAG, "Loading map failed: no sublocations");
       mLocation = null;
       return false;
     }
-    
+
     if (!loadSubLocation(0))
     {
       Log.e(TAG, "Loading map failed: unable to load default sublocation");
       mLocation = null;
       return false;
     }
-    
+
     if (mLocation.getSubLocations().size() >= 2)
     {
       mPrevFloorView.setVisibility(View.VISIBLE);
@@ -739,40 +777,40 @@ public class MainActivity extends Activity
     }
     mZoomInView.setVisibility(View.VISIBLE);
     mZoomOutView.setVisibility(View.VISIBLE);
-    mAdjustModeView.setVisibility(View.VISIBLE);    
-    
+    mAdjustModeView.setVisibility(View.VISIBLE);
+
     mNavigation.setMode(NavigationThread.MODE_NORMAL);
-    
+
     if (D.WRITE_LOGS)
       mNavigation.setLogFile(getLogFile("log"));
-    
+
     mLocationView.redraw();
     return true;
   }
-  
+
   private boolean loadSubLocation(int index)
   {
     if (mNavigation == null)
       return false;
-    
+
     if (mLocation == null || index < 0 || index >= mLocation.getSubLocations().size())
       return false;
-    
+
     SubLocation subLoc = mLocation.getSubLocations().get(index);
     Log.d(TAG, String.format(Locale.ENGLISH, "Loading sublocation %s (%.2f x %.2f)", subLoc.getName(), subLoc.getWidth(), subLoc.getHeight()));
-    
+
     if (subLoc.getWidth() < 1.0f || subLoc.getHeight() < 1.0f)
     {
       Log.e(TAG, String.format(Locale.ENGLISH, "Loading sublocation failed: invalid size: %.2f x %.2f", subLoc.getWidth(), subLoc.getHeight()));
       return false;
     }
-    
+
     if (!mLocationView.loadSubLocation(subLoc))
     {
       Log.e(TAG, "Loading sublocation failed: invalid image");
       return false;
     }
-    
+
     float viewWidth  = mLocationView.getWidth();
     float viewHeight = mLocationView.getHeight();
     float minZoomFactor = Math.min(viewWidth / subLoc.getWidth(), viewHeight / subLoc.getHeight());
@@ -780,11 +818,11 @@ public class MainActivity extends Activity
     mLocationView.setZoomRange(minZoomFactor, maxZoomFactor);
     mLocationView.setZoomFactor(minZoomFactor);
     Log.d(TAG, String.format(Locale.ENGLISH, "View size: %.1f x %.1f", viewWidth, viewHeight));
-    
+
     mAdjustTime = 0;
     mCurrentSubLocationIndex = index;
     mCurrentFloorLabel.setText(String.format(Locale.ENGLISH, "%d", mCurrentSubLocationIndex));
-    
+
     if (mCurrentSubLocationIndex > 0)
     {
       mPrevFloorButton.setEnabled(true);
@@ -795,7 +833,7 @@ public class MainActivity extends Activity
       mPrevFloorButton.setEnabled(false);
       mPrevFloorView.setBackgroundColor(Color.parseColor("#90dddddd"));
     }
-    
+
     if (mCurrentSubLocationIndex + 1 < mLocation.getSubLocations().size())
     {
       mNextFloorButton.setEnabled(true);
@@ -806,26 +844,26 @@ public class MainActivity extends Activity
       mNextFloorButton.setEnabled(false);
       mNextFloorView.setBackgroundColor(Color.parseColor("#90dddddd"));
     }
-    
+
     cancelVenue();
     mLocationView.redraw();
     return true;
   }
-  
+
   private boolean loadNextSubLocation()
   {
     if (mLocation == null || mCurrentSubLocationIndex < 0)
       return false;
     return loadSubLocation(mCurrentSubLocationIndex + 1);
   }
-  
+
   private boolean loadPrevSubLocation()
   {
     if (mLocation == null || mCurrentSubLocationIndex < 0)
       return false;
     return loadSubLocation(mCurrentSubLocationIndex - 1);
   }
-  
+
   private void makePin(PointF P)
   {
     if (mLocation == null || mCurrentSubLocationIndex < 0)
@@ -836,7 +874,7 @@ public class MainActivity extends Activity
       return;
 
     if (P.x < 0.0f || P.x > subLoc.getWidth() ||
-        P.y < 0.0f || P.y > subLoc.getHeight())
+            P.y < 0.0f || P.y > subLoc.getHeight())
     {
       // Missing the map
       return;
@@ -844,7 +882,7 @@ public class MainActivity extends Activity
 
     if (mTargetPoint != null || mTargetVenue != null)
       return;
-    
+
     if (mDeviceInfo == null || !mDeviceInfo.isValid())
       return;
 
@@ -869,14 +907,14 @@ public class MainActivity extends Activity
     mPinPointRect = null;
     mLocationView.redraw();
   }
-  
+
   private void cancelVenue()
   {
     mSelectedVenue = null;
     mLocationView.redraw();
   }
-  
-  private Venue getVenueAt(float x, float y)
+
+  private Venue getVenuedi(float x, float y)
   {
     if (mLocation == null || mCurrentSubLocationIndex < 0)
       return null;
@@ -887,7 +925,7 @@ public class MainActivity extends Activity
 
     Venue v0 = null;
     float d0 = 1000.0f;
-        
+
     for(int i = 0; i < subLoc.getVenues().size(); ++i)
     {
       Venue v = subLoc.getVenues().get(i);
@@ -899,10 +937,37 @@ public class MainActivity extends Activity
         d0 = d;
       }
     }
-    
+
     return v0;
   }
-  
+
+  private Venue getVenueAt(float x, float y)
+  {
+    if (mLocation == null || mCurrentSubLocationIndex < 0)
+      return null;
+
+    SubLocation subLoc = mLocation.getSubLocations().get(mCurrentSubLocationIndex);
+    if (subLoc == null)
+      return null;
+
+    Venue v0 = null;
+    float d0 = 1000.0f;
+
+    for(int i = 0; i < subLoc.getVenues().size(); ++i)
+    {
+      Venue v = subLoc.getVenues().get(i);
+      PointF P = mLocationView.getScreenCoordinates(v.getX(), v.getY());
+      float d = Math.abs(x - P.x) + Math.abs(y - P.y);
+      if (d < 30.0f * mDisplayDensity && d < d0)
+      {
+        v0 = v;
+        d0 = d;
+      }
+    }
+
+    return v0;
+  }
+
   private Zone getZoneAt(float x, float y)
   {
     if (mLocation == null || mCurrentSubLocationIndex < 0)
@@ -911,10 +976,10 @@ public class MainActivity extends Activity
     SubLocation subLoc = mLocation.getSubLocations().get(mCurrentSubLocationIndex);
     if (subLoc == null)
       return null;
-    
+
     PointF P = mLocationView.getAbsCoordinates(x, y);
     LocationPoint LP = new LocationPoint(mLocation.getId(), subLoc.getId(), P.x, P.y);
-    
+
     for(int i = 0; i < subLoc.getZones().size(); ++i)
     {
       Zone Z = subLoc.getZones().get(i);
@@ -923,7 +988,7 @@ public class MainActivity extends Activity
     }
     return null;
   }
-  
+
   private void drawPoints(Canvas canvas)
   {
     // Check if location is loaded
@@ -941,7 +1006,7 @@ public class MainActivity extends Activity
     final int arrowColor  = Color.argb(255, 255, 255, 255); // White color
     final float dp        = mDisplayDensity;
     final float textSize  = 16 * dp;
-    
+
     // Preparing paints
     Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     paint.setStyle(Paint.Style.FILL_AND_STROKE);
@@ -961,23 +1026,23 @@ public class MainActivity extends Activity
       paint.setColor(solidColor);
       paint.setStrokeWidth(0);
       canvas.drawCircle(T.x, T.y - 3 * tRadius, tRadius, paint);
-      
+
       final String text = "Make route";
       final float textWidth = paint.measureText(text);
       final float h  = 50 * dp;
       final float w  = Math.max(120 * dp, textWidth + h/2);
       final float x0 = T.x;
       final float y0 = T.y - 75 * dp;
-      
+
       mPinPointRect.set(x0 - w/2, y0 - h/2, x0 + w/2, y0 + h/2);
-      
+
       paint.setColor(solidColor);
       canvas.drawRoundRect(mPinPointRect, h/2, h/2, paint);
-      
+
       paint.setARGB(255, 255, 255, 255);
       canvas.drawText(text, x0 - textWidth/2, y0 + textSize/4, paint);
     }
-    
+
     // Drawing target point (if it exists and belongs to the current sublocation)
     if (mTargetPoint != null && mTargetPoint.subLocation == subLoc.getId())
     {
@@ -997,27 +1062,27 @@ public class MainActivity extends Activity
   {
     if (mLocation == null || mCurrentSubLocationIndex < 0)
       return;
-    
+
     SubLocation subLoc = mLocation.getSubLocations().get(mCurrentSubLocationIndex);
-    
+
     final float dp = mDisplayDensity;
     final float textSize  = 16 * dp;
     final float venueSize = 30 * dp;
     final int   venueColor = Color.argb(255, 0xCD, 0x88, 0x50); // Venue color
-    
+
     Paint paint = new Paint();
     paint.setStyle(Paint.Style.FILL_AND_STROKE);
     paint.setStrokeWidth(0);
     paint.setColor(venueColor);
     paint.setTextSize(textSize);
     paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-    
+
     for(int i = 0; i < subLoc.getVenues().size(); ++i)
     {
       Venue v = subLoc.getVenues().get(i);
       if (v.getSubLocationId() != subLoc.getId())
         continue;
-      
+
       final PointF P = mLocationView.getScreenCoordinates(v.getX(), v.getY());
       final float x0 = P.x - venueSize/2;
       final float y0 = P.y - venueSize/2;
@@ -1025,61 +1090,61 @@ public class MainActivity extends Activity
       final float y1 = P.y + venueSize/2;
       canvas.drawBitmap(mVenueBitmap, null, new RectF(x0, y0, x1, y1), paint);
     }
-    
+
     if (mSelectedVenue != null)
     {
       final PointF T = mLocationView.getScreenCoordinates(mSelectedVenue.getX(), mSelectedVenue.getY());
       final float textWidth = paint.measureText(mSelectedVenue.getName());
-      
+
       final float h  = 50 * dp;
       final float w  = Math.max(120 * dp, textWidth + h/2);
       final float x0 = T.x;
       final float y0 = T.y - 50 * dp;
       mSelectedVenueRect.set(x0 - w/2, y0 - h/2, x0 + w/2, y0 + h/2);
-      
+
       paint.setColor(venueColor);
       canvas.drawRoundRect(mSelectedVenueRect, h/2, h/2, paint);
-      
+
       paint.setARGB(255, 255, 255, 255);
       canvas.drawText(mSelectedVenue.getName(), x0 - textWidth/2, y0 + textSize/4, paint);
     }
   }
-  
+
   private void drawZones(Canvas canvas)
   {
     // Check if location is loaded
     if (mLocation == null || mCurrentSubLocationIndex < 0)
       return;
-    
+
     // Get current sublocation displayed
     SubLocation subLoc = mLocation.getSubLocations().get(mCurrentSubLocationIndex);
     if (subLoc == null)
       return;
-    
+
     // Preparing paints
     Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     paint.setStyle(Paint.Style.FILL_AND_STROKE);
-    
+
     for(int i = 0; i < subLoc.getZones().size(); ++i)
     {
       Zone Z = subLoc.getZones().get(i);
       if (Z.getPoints().size() < 3)
         continue;
-      
+
       boolean selected = (Z == mSelectedZone);
-      
+
       Path path = new Path();
       final LocationPoint P0 = Z.getPoints().get(0);
       final PointF        Q0 = mLocationView.getScreenCoordinates(P0);
       path.moveTo(Q0.x, Q0.y);
-      
+
       for(int j = 0; j < Z.getPoints().size(); ++j)
       {
         final LocationPoint P = Z.getPoints().get((j + 1) % Z.getPoints().size());
         final PointF        Q = mLocationView.getScreenCoordinates(P);
         path.lineTo(Q.x, Q.y);
       }
-      
+
       int zoneColor = Color.parseColor(Z.getColor());
       int red       = (zoneColor >> 16) & 0xff;
       int green     = (zoneColor >> 8 ) & 0xff;
@@ -1088,13 +1153,13 @@ public class MainActivity extends Activity
       canvas.drawPath(path, paint);
     }
   }
-  
+
   private void drawDevice(Canvas canvas)
   {
     // Check if location is loaded
     if (mLocation == null || mCurrentSubLocationIndex < 0)
       return;
-    
+
     // Check if navigation is available
     if (mDeviceInfo == null || !mDeviceInfo.isValid())
       return;
@@ -1109,7 +1174,7 @@ public class MainActivity extends Activity
     final int circleColor = Color.argb(127, 64,  163, 205); // Semi-transparent light-blue color
     final int arrowColor  = Color.argb(255, 255, 255, 255); // White color
     final float dp = mDisplayDensity;
-    
+
     // Preparing paints
     Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     paint.setStyle(Paint.Style.FILL_AND_STROKE);
@@ -1137,7 +1202,7 @@ public class MainActivity extends Activity
         }
       }
     }
-    
+
     paint.setStrokeCap(Paint.Cap.BUTT);
 
     // Check if device belongs to the current sublocation
@@ -1205,7 +1270,7 @@ public class MainActivity extends Activity
           if (mLocation.getSubLocations().get(i).getId() == mDeviceInfo.getSubLocationId())
             loadSubLocation(i);
       }
-      
+
       // Secondly, adjust device to the center of the screen
       PointF center = mLocationView.getScreenCoordinates(mDeviceInfo.getX(), mDeviceInfo.getY());
       float deltaX  = mLocationView.getWidth()  / 2 - center.x;
@@ -1360,7 +1425,7 @@ public class MainActivity extends Activity
 
     }
   };
-  
+
   private String getLogFile(String extension)
   {
     try
@@ -1369,18 +1434,18 @@ public class MainActivity extends Activity
       (new File(extDir)).mkdirs();
       if (!(new File(extDir)).exists())
         return null;
-      
+
       Calendar calendar = Calendar.getInstance();
       calendar.setTimeInMillis(System.currentTimeMillis());
-      
+
       return String.format(Locale.ENGLISH, "%s/%04d%02d%02d_%02d%02d%02d.%s", extDir,
-                           calendar.get(Calendar.YEAR),
-                           calendar.get(Calendar.MONTH) + 1,
-                           calendar.get(Calendar.DAY_OF_MONTH),
-                           calendar.get(Calendar.HOUR_OF_DAY),
-                           calendar.get(Calendar.MINUTE),
-                           calendar.get(Calendar.SECOND),
-                           extension);
+              calendar.get(Calendar.YEAR),
+              calendar.get(Calendar.MONTH) + 1,
+              calendar.get(Calendar.DAY_OF_MONTH),
+              calendar.get(Calendar.HOUR_OF_DAY),
+              calendar.get(Calendar.MINUTE),
+              calendar.get(Calendar.SECOND),
+              extension);
     }
     catch (Throwable e)
     {

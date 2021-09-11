@@ -67,27 +67,31 @@ public class DatabaseAccess {
 //        return null;
 
 
-    public Float getKoorY(String suara){
-
-//        List KoorXYs = new ArrayList<>();
+    public double getKoorY(String suara){
+//        String query= "SELECT idVenue, namaVenue, KoorX, KoorY FROM Lantai1 WHERE namaVenue = ?";
+//        String[] selectionArgs = {"suara"};
+//        c=db.rawQuery(String.valueOf(query), selectionArgs );
+//        List KoorYs = new ArrayList<>();
         c=db.rawQuery("select idVenue from Lantai1 where namaVenue = '"+suara+"'",new String[]{} );
         List KoorYs = new ArrayList<>();
-        while (c.moveToNext()){
-            Float KoorY = c.getFloat(c.getColumnIndex("KoorY"));
+        while (c.moveToFirst()){
+            double KoorY = c.getDouble(c.getColumnIndex("KoorY"));
             KoorYs.add(KoorY);
         }
-        return null;
+        return 1;
     }
 
-    public Float getKoorX(String suara){
-
-//        List KoorXYs = new ArrayList<>();
+    public double getKoorX(String suara){
+//        String query= "SELECT idVenue, namaVenue, KoorX, KoorY FROM Lantai1 WHERE namaVenue = ?";
+//        String[] selectionArgs = {"suara"};
+//        c=db.rawQuery(Double.valueOf(query), selectionArgs );
+//        List KoorXs = new ArrayList<>();
         c=db.rawQuery("select idVenue from Lantai1 where namaVenue = '"+suara+"'", new String[]{});
         List KoorXs = new ArrayList<>();
-        while (c.moveToNext()){
-            Float KoorX = c.getFloat(0);
+        while (c.moveToFirst()){
+            double KoorX = c.getDouble(c.getColumnIndex("KoorX"));
             KoorXs.add(KoorX);
         }
-        return null;
+        return 1;
     }
 }

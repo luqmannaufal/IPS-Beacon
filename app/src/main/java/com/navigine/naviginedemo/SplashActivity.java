@@ -10,10 +10,8 @@ import android.content.*;
 import android.os.*;
 import android.view.*;
 import android.widget.*;
-import android.util.*;
+
 import java.lang.*;
-import java.io.*;
-import java.util.*;
 
 import com.navigine.naviginesdk.*;
 
