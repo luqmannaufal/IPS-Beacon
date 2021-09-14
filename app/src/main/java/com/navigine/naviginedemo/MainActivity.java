@@ -45,7 +45,7 @@ import org.w3c.dom.Text;
 
 public class MainActivity extends Activity
 {
-  private static final String   TAG                     = "B-NAV";
+  private static final String   TAG                     = "NAVIGINE.Demo";
   private static final String   NOTIFICATION_CHANNEL    = "NAVIGINE_DEMO_NOTIFICATION_CHANNEL";
   private static final int      UPDATE_TIMEOUT          = 100;  // milliseconds
   private static final int      ADJUST_TIMEOUT          = 5000; // milliseconds
@@ -1230,15 +1230,17 @@ public class MainActivity extends Activity
         break;
     }
     float nextTurnDistance = Math.max(path.getEvents().get(0).getDistance(), 1);
-
+    int jarakLangkah = (int) Math.floor(nextTurnDistance * 3.28f);
+    mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%d langkah", jarakLangkah));
 //    mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%.0f m", nextTurnDistance));
+//    mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%.0f langkah", jarakLangkah));
     String speakBelok = mDirectionBelokView.getText().toString();
 //    String speakJarak = mDirectionTextView.getText().toString();
 //    1 meter = 3.28 feet
-    int jarakLangkah = (int) Math.floor(nextTurnDistance * 3.28f);
+//    int jarakLangkah = (int) Math.floor(nextTurnDistance * 3.28f);
 //    mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%.0f langkah", jarakLangkah));
     String speakJarak = (String) Integer.toString(jarakLangkah) +" langkah";
-    mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%.0f langkah", jarakLangkah));
+//    mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%.0f langkah", jarakLangkah));
     String speak1 = "";
     if (speakBelok!="" && speakJarak!="")
     {
