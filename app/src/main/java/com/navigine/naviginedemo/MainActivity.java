@@ -10,6 +10,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.icu.text.UFormat;
 import android.os.*;
 import android.provider.BaseColumns;
 import android.speech.RecognizerIntent;
@@ -37,6 +38,7 @@ import static com.navigine.naviginesdk.RouteEvent.TURN_LEFT;
 import static com.navigine.naviginesdk.RouteEvent.TURN_RIGHT;
 
 import android.os.Vibrator;
+import android.os.CountDownTimer;
 
 import org.w3c.dom.Text;
 
@@ -69,7 +71,8 @@ public class MainActivity extends Activity
   private Handler       mHandler                  = new Handler();
   private float         mDisplayDensity           = 0.0f;
 
-  private boolean       mAdjustMode               = false;
+  //private boolean       mAdjustMode               = false;
+  private boolean       mAdjustMode               = true;
   private long          mAdjustTime               = 0;
 
   // Location parameters
@@ -116,19 +119,17 @@ public class MainActivity extends Activity
   private String speak2 = null;
   private String peringatan2 = null;
 
-//  private static final String DATABASE_NAME="Kos.db";
-//
-//  private SQLiteOpenHelper openHelper;
-//  private SQLiteDatabase db;
-//  private static DatabaseAccess instance;
-//  Cursor c = null;
-
   DataHelper dbHelper;
   protected Cursor cursor;
 
-//  public DatabaseOpenHelper (Context context){
-//    super (context, DATABASE_NAME, null, DATABASE_VERSION);
-//  }
+  private String pesanError = null;
+  private int jmlError = 0;
+  private int delayError = 10;
+  private boolean statusInfoError = false;
+
+  private int jmlJalur = -1;
+  private String sampai02;
+
 
   //test git, test git2, test git3, test git4
   @Override protected void onCreate(Bundle savedInstanceState)
@@ -179,12 +180,11 @@ public class MainActivity extends Activity
 
     getar = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 
-//    DatabaseOpenHelper dbHelper = new DatabaseOpenHelper(Context context);
+    //database
     dbHelper = new DataHelper(this);
 
-
+    //speech
     textToSpeech();
-
 
     // Initializing location view
     mLocationView = (LocationView)findViewById(R.id.navigation__location_view);
@@ -194,8 +194,8 @@ public class MainActivity extends Activity
                     new LocationView.Listener()
                     {
 
-                      @Override public void onClick     ( float x, float y ) { tanpaKlik(x, y);     }
-                      //        @Override public void onClick     ( float x, float y ) { handleClick(x, y);     }
+                      //@Override public void onClick     ( float KoorX, float KoorY ) { tanpaKlik(KoorX, KoorY);     }
+                      @Override public void onClick     ( float x, float y ) { handleClick(x, y);     }
                       @Override public void onLongClick ( float x, float y ) { handleLongClick(x, y); }
                       @Override public void onScroll    ( float x, float y, boolean byTouchEvent ) { handleScroll ( x, y,  byTouchEvent ); }
                       @Override public void onZoom      ( float ratio,      boolean byTouchEvent ) { handleZoom   ( ratio, byTouchEvent ); }
@@ -272,35 +272,36 @@ public class MainActivity extends Activity
     }
   }
 
-  private void RefreshDataPosisi(String namaBarang){
+  private void cariBarang(String namaBarang) {
     SQLiteDatabase db = dbHelper.getReadableDatabase();
-    cursor = db.rawQuery("SELECT nama, posisix, posisiy FROM lokasi WHERE nama LIKE '%"+ namaBarang +"%'LIMIT 1", null);
+    cursor = db.rawQuery("SELECT nama, posisix, posisiy, venuex, venuey FROM lokasi " +
+            "WHERE nama LIKE '%" + namaBarang + "%'LIMIT 1", null);
 //    Integer jmlRecord = cursor.getCount();
 //    String[] daftar = new String[jmlRecord];
-    cursor.moveToFirst();
-//
-    if(cursor.getCount() > 0 ){
-      cursor.moveToPosition(0);
-      String  namaPosisi = cursor.getString(0).toString();
-      float  x =  cursor.getFloat(1);
-      float  y =  cursor.getFloat(2);
-      //Log.d(TAG, String.format(Locale.ENGLISH, "koordinatXY ( %.2f, %.2f)", posisiX, posisiY));
-      showToastMessage( String.format(Locale.ENGLISH, "koordinatXY ( %.2f, %.2f)", x, y));
+    if (cursor.moveToFirst()) {
+      if (cursor.getCount() > 0) {
+        cursor.moveToPosition(0);
+        String namaPosisi = cursor.getString(0).toString();
+        float koordX = cursor.getFloat(1);  //screen x
+        float koordY = cursor.getFloat(2);  //screen y
+        float posisiX = cursor.getFloat(3); //vanue x
+        float posisiY = cursor.getFloat(4); //vanue y
+        //Log.d(TAG, String.format(Locale.ENGLISH, "koordinatXY ( %.2f, %.2f)", posisiX, posisiY));
+        showToastMessage(String.format(Locale.ENGLISH, "koordinatXY (%.2f, %.2f, %.2f, %.2f)", koordX, koordY, posisiX, posisiY));
+        speak("barang anda cari ada di");
+        try{
+          Thread.sleep(3000);
+        } catch (InterruptedException e){
+          e.printStackTrace();
+        }
 
-      tanpaKlik(x, y);
-//    if(cursor.getCount() > 0 ){
-//      cursor.moveToPosition(0);
-//      String  namaPosisi = cursor.getString(0).toString();
-//      float  posisiX =  cursor.getFloat(1);
-//      float  posisiY =  cursor.getFloat(2);
-//      //Log.d(TAG, String.format(Locale.ENGLISH, "koordinatXY ( %.2f, %.2f)", posisiX, posisiY));
-//      showToastMessage( String.format(Locale.ENGLISH, "koordinatXY ( %.2f, %.2f)", posisiX, posisiY));
-//
-//      tanpaKlik(posisiX, posisiY);
-
+        //if()
+        tanpaKlik(koordX, koordY, posisiX, posisiY);
+      }
+    } else {
+      speak("barang yang anda cari tidak ada!");
     }
-
-
+    cursor.close();
   }
   protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
     super.onActivityResult(requestCode, resultCode, data);
@@ -312,72 +313,18 @@ public class MainActivity extends Activity
           final ArrayList<String> MasukkanSuaraAnda = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
           suara = MasukkanSuaraAnda.get(0);
 //        Log.d(TAG, String.format(Locale.ENGLISH, "hasilsuara (%s)", suara));
-          RefreshDataPosisi(suara);
+          cariBarang(suara);
           //cariBarang(suara);
 //        String s = suara.getBytes(StandardCharsets.UTF_8).toString();
 //        dialog(suara);
 //        mDatabaseReference.child("Voice").setValue(suara);
           active = 0;
         }
-//      if(resultCode == RESULT_OK && null !=data && Pesan){
-//        final ArrayList <String> MasukkanSuaraAnda = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-//        suara = MasukkanSuaraAnda.get(0);
-//        Kirimpesan(suara);
-//        active=0;
-//        Pesan = false;
-//
-//      }
+
         break;
       }
     }
   }
-
-
-//  public void cariBarang(String suara){
-//      FeedReaderDbHelper dbHelper = new FeedReaderDbHelper(getContext());
-//    DatabaseAccess databaseAccess = DatabaseAccess.getInstance(getApplicationContext());
-//    databaseAccess.open();
-
-//    String s = suara;
-//    Log.d(TAG, String.format(Locale.ENGLISH, "suaranya ( %s )", s));
-
-//    List KoorXYs = new ArrayList<>();
-    //Float KoorX = databaseAccess.getKoorX(s);
-    //Float KoorY = databaseAccess.getKoorY(s);
-//    Float KoorX = (Float) KoorXYs.get(0);
-//    Float KoorY = (Float) KoorXYs.get(1);
-//    boolean KoorX = KoorXYs.add(0);
-//    boolean KoorY = KoorXYs.add(1);
-//    Log.d(TAG, String.format(Locale.ENGLISH, "koordinatXY ( %.2f, %.2f)", KoorX, KoorY));
-
-//    tanpaklik(posisiX, posisiY);
-//      tanpaKlik(243.00f, 1056.00f);
-
-//    databaseAccess.close();
-
-//  }
-//    c=db.rawQuery("select KoorX from Lantai1 where namaVenue = '"+suara+"'", new String[]{});
-//    FloatBuffer buffer = new FloatBuffer();
-
-
-
-//      String projection = DATABASE_NAME;
-////              {
-//////              BaseColumns._ID, ,
-//////              DatabaseOpenHelper.KoorX,
-//////              DatabaseOpenHelper.KoorY
-////      };
-//
-//      String selection = DatabaseOpenHelper.Kos + "= ?";
-//      String[] selectionArgs = { "koorX", "koorY"};
-//
-//      String sortOrder = FeedEntry.Nama + "DESC";
-//
-//      Cursor cursor = db.query(
-//              FeedEntry.Kos,
-//      );
-
-
 
   @Override public void onDestroy()
   {
@@ -465,11 +412,8 @@ public class MainActivity extends Activity
   private void handleClick(float x, float y)
   {
     Log.d(TAG, String.format(Locale.ENGLISH, "Click at ( %.2f, %.2f)", x, y));
-//    float posisiX = 0.0F;
-//    float posisiY = 0.0F;
-//    posisiX = (float) 15.11;
-//    posisiY = (float) 12.41;
-//    posisiY = (float) 12.41;
+    showToastMessage(String.format(Locale.ENGLISH, "Posisi Venue ( %.2f, %.2f)", x, y));
+
     if (mLocation == null || mCurrentSubLocationIndex < 0)
       return;
 
@@ -493,25 +437,20 @@ public class MainActivity extends Activity
       return;
     }
 
-//    if (mSelectedVenue.getSubLocationId() != subLoc.getId())
-//    {
-//      for(int i = 0; i < mLocation.getSubLocations().size();)
-//        if (mLocation.getSubLocations().get(i).getId() == mSelectedVenue.getSubLocationId() && mSelectedVenueRect.contains(x, y))
-//        {
-//          mTargetVenue = mSelectedVenue;
-//          mTargetPoint = null;
-//          mNavigation.setTarget(new LocationPoint(mSelectedVenue.getSubLocationId(), subLoc.getId(), mTargetVenue.getX(), mTargetVenue.getY()));
-//          mBackView.setVisibility(View.VISIBLE);
-//        }
     if (mSelectedVenue != null)
     {
       if (mSelectedVenueRect != null && mSelectedVenueRect.contains( x, y))
       {
         mTargetVenue = mSelectedVenue;
         mTargetPoint = null;
-        mNavigation.setTarget(new LocationPoint(mLocation.getId(), subLoc.getId(), mTargetVenue.getX(), mTargetVenue.getY()));
+        //mNavigation.setTarget(new LocationPoint(mLocation.getId(), subLoc.getId(), mTargetVenue.getX(), mTargetVenue.getY()));
+        //mNavigation.setTarget(new LocationPoint(91784, 134323,  (float)5.72, (float)4.78));
+        //mNavigation.setTarget(new LocationPoint(0, 0,  (float)5.72, (float)4.78));
         Log.d(TAG, String.format(Locale.ENGLISH, "Posisi Venue ( %.2f, %.2f)",mTargetVenue.getX(), mTargetVenue.getY()));
-//        mNavigation.setTarget(new LocationPoint(mLocation.getId(), subLoc.getId(), posisiX, posisiY));
+        showToastMessage(String.format(Locale.ENGLISH, "Posisi Venue ( %.2f, %.2f)",mTargetVenue.getX(), mTargetVenue.getY()));
+        //mNavigation.setTarget(new LocationPoint(91784, 134323, 5.72, 4.78));
+        //3.53, 2.82
+        //1.12, 0.50
         mBackView.setVisibility(View.VISIBLE);
       }
       cancelVenue();
@@ -519,7 +458,7 @@ public class MainActivity extends Activity
     }
 
     // Check if we touched venue
-    mSelectedVenue = getVenueAt( x, y);
+    mSelectedVenue = getVenueAt(x, y);
     mSelectedVenueRect = new RectF();
 
     // Check if we touched zone
@@ -533,77 +472,47 @@ public class MainActivity extends Activity
     mLocationView.redraw();
   }
 
-  private void tanpaKlik(float x, float y)
+  private void tanpaKlik(float koorX, float koorY, float posisiX, float posisiY)
   {
-    Log.d(TAG, String.format(Locale.ENGLISH, "Click at ( %.2f, %.2f)", x, y));
-//    float posisiX = 0.0F;
-//    float posisiY = 0.0F;
-//    posisiX = (float) 15.11;
-//    posisiY = (float) 12.41;
-//    posisiY = (float) 12.41;
-    if (mLocation == null || mCurrentSubLocationIndex < 0)
-      return;
+      if (mLocation == null || mCurrentSubLocationIndex < 0)
+        return;
 
-    SubLocation subLoc = mLocation.getSubLocations().get(mCurrentSubLocationIndex);
-    if (subLoc == null)
-      return;
+      SubLocation subLoc = mLocation.getSubLocations().get(mCurrentSubLocationIndex);
+      if (subLoc == null)
+        return;
 
-    if (mPinPoint != null)
-    {
-      if (mPinPointRect != null && mPinPointRect.contains(x, y))
+      if (mPinPoint != null)
       {
-        mTargetPoint  = mPinPoint;
-        mTargetVenue  = null;
-        mPinPoint     = null;
-        mPinPointRect = null;
-        mNavigation.setTarget(mTargetPoint);
-        mBackView.setVisibility(View.VISIBLE);
+        if (mPinPointRect != null && mPinPointRect.contains(koorX, koorY))
+        {
+          mTargetPoint  = mPinPoint;
+          mTargetVenue  = null;
+          mPinPoint     = null;
+          mPinPointRect = null;
+          mNavigation.setTarget(mTargetPoint);
+          mBackView.setVisibility(View.VISIBLE);
+          return;
+        }
+        cancelPin();
         return;
       }
-      cancelPin();
-      return;
-    }
 
-//    if (mSelectedVenue.getSubLocationId() != subLoc.getId())
-//    {
-//      for(int i = 0; i < mLocation.getSubLocations().size();)
-//        if (mLocation.getSubLocations().get(i).getId() == mSelectedVenue.getSubLocationId() && mSelectedVenueRect.contains(x, y))
-//        {
-//          mTargetVenue = mSelectedVenue;
-//          mTargetPoint = null;
-//          mNavigation.setTarget(new LocationPoint(mSelectedVenue.getSubLocationId(), subLoc.getId(), mTargetVenue.getX(), mTargetVenue.getY()));
-//          mBackView.setVisibility(View.VISIBLE);
-//        }
-    if (mSelectedVenue != null)
-    {
-      if (mSelectedVenueRect != null && mSelectedVenueRect.contains( x, y))
+//      mNavigation.setTarget(new LocationPoint(91784, 134323,  (float)5.72, (float)4.78));
+      mNavigation.setTarget(new LocationPoint(mLocation.getId(), subLoc.getId(),  posisiX, posisiY));
+
+      mSelectedVenue = getVenueAt( koorX, koorY);
+      mSelectedVenueRect = new RectF();
+
+      // Check if we touched zone
+      if (mSelectedVenue == null)
       {
-        mTargetVenue = mSelectedVenue;
-        mTargetPoint = null;
-        mNavigation.setTarget(new LocationPoint(mLocation.getId(), subLoc.getId(), mTargetVenue.getX(), mTargetVenue.getY()));
-        Log.d(TAG, String.format(Locale.ENGLISH, "Posisi Venue ( %.2f, %.2f)",mTargetVenue.getX(), mTargetVenue.getY()));
-//        mNavigation.setTarget(new LocationPoint(mLocation.getId(), subLoc.getId(), posisiX, posisiY));
-        mBackView.setVisibility(View.VISIBLE);
+        Zone Z = getZoneAt(koorX, koorY);
+        if (Z != null)
+          mSelectedZone = (mSelectedZone == Z) ? null : Z;
       }
-      cancelVenue();
-      return;
-    }
 
-    // Check if we touched venue
-    mSelectedVenue = getVenuedi( x, y);
-    mSelectedVenueRect = new RectF();
-
-    // Check if we touched zone
-//    if (mSelectedVenue == null)
-//    {
-//      Zone Z = getZoneAt(posisiX, posisiY);
-//      if (Z != null)
-//        mSelectedZone = (mSelectedZone == Z) ? null : Z;
-//    }
-
-    mLocationView.redraw();
+      mLocationView.redraw();
   }
-
 
   private void handleLongClick(float x, float y)
   {
@@ -672,11 +581,43 @@ public class MainActivity extends Activity
 
     if (mDeviceInfo.isValid() && mDeviceInfo.getPaths().size() != 0) {
       if (mDeviceInfo.getPaths().get(0).getEvents().size() >= 1)
-        showDirections(mDeviceInfo.getPaths().get(0));
-    }
-    else
-      mDirectionLayout.setVisibility(GONE);
+//        showDirections(mDeviceInfo.getPaths().get(0));
+      {
 
+        showDirections(mDeviceInfo.getPaths().get(0));
+
+      }
+
+      jmlJalur = mDeviceInfo.getPaths().get(0).getEvents().size() ;
+      if (jmlJalur == 0)
+      {
+        showToastMessage("jml Path = " + Integer.toString(jmlJalur));
+        jmlJalur=-1;
+//        speak ("Anda sudah sampai ditempat "+suara);
+        String sampai01 = " Anda sudah sampai ditempat " +suara;
+        if ( !sampai01.equals(sampai02) )
+            speak(sampai01);
+        sampai02 = sampai01;
+
+
+        cancelVenue();
+
+
+        mDirectionLayout.setVisibility(GONE);
+//        try{
+//          Thread.sleep(3000);
+//        } catch (InterruptedException e){
+//          e.printStackTrace();
+//        }
+      }
+
+//        String jmlPath = Integer.toString(a);
+//        showToastMessage("jml Path = " + jmlPath);
+    }
+    else {
+      Log.d("Tag", "sudah sampai lokasi");
+
+    }
     if (mDeviceInfo.isValid())
     {
       cancelErrorMessage();
@@ -694,13 +635,14 @@ public class MainActivity extends Activity
           setErrorMessage(String.format(new Locale ("id", "ID"),"Anda keluar dari zona navigasi! Tolong, periksa apakah bluetooth Anda diaktifkan!"));
 //          speak("You are out of navigation zone! Please, check that your bluetooth is enabled!");
           //speak("Anda keluar dari zona navigasi! Tolong, periksa apakah bluetooth Anda diaktifkan!");
+          pesanError = "Anda keluar dari zona navigasi! Coba periksa, apakah Bluetooth Anda aktif!";
 
           break;
 
         case 8:
         case 30:
           setErrorMessage(String.format(new Locale ("id", "ID"),"Not enough beacons on the location! Please, add more beacons!"));
-
+          pesanError = "Not enough beacons on the location! Please, add more beacons!";
           break;
 
         default:
@@ -708,10 +650,24 @@ public class MainActivity extends Activity
                   "Something is wrong with location '%s' (error code %d)! " +
                           "Please, contact technical support!",
                   mLocation.getName(), mDeviceInfo.getErrorCode()));
+          pesanError = String.format(new Locale ("id", "ID"),
+                  "Something is wrong with location '%s' (error code %d)! " +
+                          "Please, contact technical support!",
+                  mLocation.getName(), mDeviceInfo.getErrorCode());
           break;
       }
+
+      statusInfoError = true;
 //      String peringatan1 = String.valueOf(mDeviceInfo.getErrorCode());
 //      speak(peringatan1);
+      if(statusInfoError && jmlError>=delayError ){
+        speak(pesanError);
+        jmlError =0;
+
+      }else{
+        jmlError+=1;
+      }
+      Log.d(TAG, String.format(new Locale("id","ID"),"Nilai jmlError = %s",jmlError));
     }
 
     // This causes map redrawing
@@ -722,13 +678,7 @@ public class MainActivity extends Activity
   private void setErrorMessage(String message)
   {
     mErrorMessageLabel.setText(message);
-//    String peringatan1 = mErrorMessageLabel.getText().toString();
-//    speak(peringatan1);
-//
-//    if ( !peringatan1.equals(peringatan2) )
-//      speak(peringatan1);
-//
-//    peringatan2 = peringatan1;
+
     mErrorMessageLabel.setVisibility(View.VISIBLE);
 
   }
@@ -736,6 +686,7 @@ public class MainActivity extends Activity
   private void cancelErrorMessage()
   {
     mErrorMessageLabel.setVisibility(View.GONE);
+    statusInfoError = false;
   }
 
   private boolean loadMap()
@@ -912,33 +863,6 @@ public class MainActivity extends Activity
   {
     mSelectedVenue = null;
     mLocationView.redraw();
-  }
-
-  private Venue getVenuedi(float x, float y)
-  {
-    if (mLocation == null || mCurrentSubLocationIndex < 0)
-      return null;
-
-    SubLocation subLoc = mLocation.getSubLocations().get(mCurrentSubLocationIndex);
-    if (subLoc == null)
-      return null;
-
-    Venue v0 = null;
-    float d0 = 1000.0f;
-
-    for(int i = 0; i < subLoc.getVenues().size(); ++i)
-    {
-      Venue v = subLoc.getVenues().get(i);
-      PointF P = mLocationView.getScreenCoordinates(v.getX(), v.getY());
-      float d = Math.abs(x - P.x) + Math.abs(y - P.y);
-      if (d < 30.0f * mDisplayDensity && d < d0)
-      {
-        v0 = v;
-        d0 = d;
-      }
-    }
-
-    return v0;
   }
 
   private Venue getVenueAt(float x, float y)
@@ -1294,7 +1218,6 @@ public class MainActivity extends Activity
   private void showDirections(RoutePath path)
   {
 //    u = speak(speakjarak + speak belok);
-
     switch (path.getEvents().get(0).getType())
     {
       case RouteEvent.TURN_LEFT:
@@ -1307,61 +1230,29 @@ public class MainActivity extends Activity
         break;
     }
     float nextTurnDistance = Math.max(path.getEvents().get(0).getDistance(), 1);
-    mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%.0f m", nextTurnDistance));
-    String speakbelok = mDirectionBelokView.getText().toString();
-    String speakjarak = mDirectionTextView.getText().toString();
-    String speak1 = speakbelok + "setelah" + speakjarak ;
 
-    if ( !speak1.equals(speak2) )
-      speak(speak1);
+//    mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%.0f m", nextTurnDistance));
+    String speakBelok = mDirectionBelokView.getText().toString();
+//    String speakJarak = mDirectionTextView.getText().toString();
+//    1 meter = 3.28 feet
+    int jarakLangkah = (int) Math.floor(nextTurnDistance * 3.28f);
+//    mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%.0f langkah", jarakLangkah));
+    String speakJarak = (String) Integer.toString(jarakLangkah) +" langkah";
+    mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%.0f langkah", jarakLangkah));
+    String speak1 = "";
+    if (speakBelok!="" && speakJarak!="")
+    {
+      speak1 = speakBelok +" setelah "+ speakJarak;
 
-    speak2 = speak1;
+      if ( !speak1.equals(speak2) )
+        speak(speak1);
+
+      speak2 = speak1;
+      sampai02 = speak1;
+    }
 
     mDirectionLayout.setVisibility(View.VISIBLE);
   }
-//private void showDirections(RoutePath path)
-//{
-//  String belok ="", jarak ="";
-//  switch (path.getEvents().get(0).getType())
-//  {
-//    case RouteEvent.TURN_LEFT:
-//      mDirectionBelokView.setText(String.format(new Locale("id", "ID"),"Belok Kiri"));
-//      belok ="Belok Kiri";
-//      //speak("Belok Kiri");
-//      break;
-//    case RouteEvent.TURN_RIGHT:
-//      mDirectionBelokView.setText(String.format(new Locale("id", "ID"),"Belok Kanan"));
-//      belok ="Belok Kanan";
-//      //speak("Belok Kanan");
-//      break;
-//  }
-//  float nextTurnDistance = Math.max(path.getEvents().get(0).getDistance(), 1);
-//  mDirectionTextView.setText(String.format(new Locale ( "id", "ID"),"%.0f m", nextTurnDistance));
-//  jarak = "%.0f meter";
-//  speak(belok +" "+ jarak);
-//  //speak("%.0f meter");
-//  mDirectionLayout.setVisibility(View.VISIBLE);
-//}
-
-//  private void showDirections(RoutePath path)
-//  {
-//    String mDirectionBelokView = String.valueOf(path.getEvents().get(0).getType());
-//    float nextTurnDistance = Math.max(path.getEvents().get(0).getDistance(), 1);
-//    String mDirectionTextView = String.valueOf(nextTurnDistance);
-//
-//      if (RouteEvent.TURN_LEFT == 1){
-//        mDirectionBelokView.indexOf(String.format(new Locale("id", "ID"),"Belok Kiri"));
-//        mDirectionTextView.indexOf(String.format(new Locale ( "id", "ID"),"%.0f m", nextTurnDistance));
-//        speak(mDirectionBelokView + mDirectionTextView);
-//        mDirectionLayout.setVisibility(View.VISIBLE);
-//    }else if(RouteEvent.TURN_LEFT == 1){
-//        mDirectionBelokView.indexOf(String.format(new Locale("id", "ID"),"Belok Kanan"));
-//        mDirectionTextView.indexOf(String.format(new Locale ( "id", "ID"),"%.0f m", nextTurnDistance));
-//        speak(mDirectionBelokView + mDirectionTextView);
-//        mDirectionLayout.setVisibility(View.VISIBLE);
-//    }
-//
-//  }
 
   private void speak(String message){
     if(Build.VERSION.SDK_INT>=21){
@@ -1416,7 +1307,8 @@ public class MainActivity extends Activity
       float delta = acelVal - acelLast;
       shake = shake * 0.9f + delta;
 
-      if (shake < -7 && active == 0) {
+      if (shake < -7 ) {
+        cancelVenue();
         myExecute();
       }
     }
