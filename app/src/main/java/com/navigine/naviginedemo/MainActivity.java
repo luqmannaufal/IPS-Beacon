@@ -1282,7 +1282,7 @@ public class MainActivity extends Activity
 
     try{
       startActivityForResult(intent, RESULT_SPEECH);
-      new CountDownTimer(10000, 10000) {
+      new CountDownTimer(5000, 5000) {
         @Override
         public void onTick(long millisUntilFinished) {
 
