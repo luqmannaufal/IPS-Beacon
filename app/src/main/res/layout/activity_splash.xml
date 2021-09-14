@@ -9,7 +9,7 @@
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:scaleType="fitXY"
-        android:src="@drawable/elm_splash"/>
+        android:src="@drawable/gambar_ta_splash"/>
     
     <TextView android:id="@+id/splash__status_label"
         android:layout_width="wrap_content"

@@ -45,7 +45,7 @@ import org.w3c.dom.Text;
 
 public class MainActivity extends Activity
 {
-  private static final String   TAG                     = "NAVIGINE.Demo";
+  private static final String   TAG                     = "B-NAV";
   private static final String   NOTIFICATION_CHANNEL    = "NAVIGINE_DEMO_NOTIFICATION_CHANNEL";
   private static final int      UPDATE_TIMEOUT          = 100;  // milliseconds
   private static final int      ADJUST_TIMEOUT          = 5000; // milliseconds
@@ -550,7 +550,7 @@ public class MainActivity extends Activity
       notificationBuilder.setContentIntent(PendingIntent.getActivity(this, z.getId(), notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT));
       notificationBuilder.setContentTitle("New zone");
       notificationBuilder.setContentText("You have entered zone '" + z.getName() + "'");
-      notificationBuilder.setSmallIcon(R.drawable.elm_logo);
+      notificationBuilder.setSmallIcon(R.drawable.gambar_ta);
       notificationBuilder.setAutoCancel(true);
 
       // Posting a notification
