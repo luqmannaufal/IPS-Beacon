@@ -130,6 +130,11 @@ public class MainActivity extends Activity
   private int jmlJalur = -1;
   private String sampai02;
 
+  private String pesanAda = null;
+  private int jmlAda = 0;
+  private int delayAda = 10;
+  private boolean statusInfoAda = false;
+
 
   //test git, test git2, test git3, test git4
   @Override protected void onCreate(Bundle savedInstanceState)
@@ -288,12 +293,26 @@ public class MainActivity extends Activity
         float posisiY = cursor.getFloat(4); //vanue y
         //Log.d(TAG, String.format(Locale.ENGLISH, "koordinatXY ( %.2f, %.2f)", posisiX, posisiY));
         showToastMessage(String.format(Locale.ENGLISH, "koordinatXY (%.2f, %.2f, %.2f, %.2f)", koordX, koordY, posisiX, posisiY));
-        speak("barang anda cari ada di");
-        try{
-          Thread.sleep(3000);
-        } catch (InterruptedException e){
-          e.printStackTrace();
-        }
+        speak("menuju"+suara);
+//        pesanAda = "barang anda cari ada di";
+//
+//        statusInfoAda = true;
+////      String peringatan1 = String.valueOf(mDeviceInfo.getErrorCode());
+////      speak(peringatan1);
+//        if(statusInfoAda && jmlAda>=delayAda ){
+//          speak(pesanAda);
+//          jmlAda =0;
+//
+//        }else{
+//          jmlAda+=1;
+//        }
+//        Log.d(TAG, String.format(new Locale("id","ID"),"Nilai jmlAda = %s",jmlAda));
+
+//        try{
+//          Thread.sleep(3000);
+//        } catch (InterruptedExce     ption e){
+//          e.printStackTrace();
+//        }
 
         //if()
         tanpaKlik(koordX, koordY, posisiX, posisiY);

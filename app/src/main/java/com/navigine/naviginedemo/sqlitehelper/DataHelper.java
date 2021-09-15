@@ -10,7 +10,7 @@ import java.net.ContentHandler;
 public class DataHelper  extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "datalokasi.db";
     public static final String TABLE_NAME = "lokasi";
-    private static final Integer DATABASE_VERSION = 7;
+    private static final Integer DATABASE_VERSION = 15;
 
     private static final String SQL_DELETE_ENTRIES =
             "DROP TABLE IF EXISTS " + TABLE_NAME;
@@ -35,36 +35,36 @@ public class DataHelper  extends SQLiteOpenHelper {
         Log.d("Data", "onCreate: "+sql);
         //db.execSQL(sql);
         String sql2 = "INSERT INTO " + TABLE_NAME +"  (id, nama, posisix, posisiy, venuex, venuey ) VALUES (" +
-                        " '1', 'Kamar Bagus', " +
-                        " '243', '1056', " +
-                " '4.43', '2.45' )";
+                " '1', 'pintu', " +
+                " '94.70', '70.78', " +
+                " '2.12', '10.33' )";
 
         String sql3 = "INSERT INTO " + TABLE_NAME +"  (id, nama, posisix, posisiy,  venuex, venuey ) VALUES (" +
-                " '2', 'pagar', " +
-                " '102', '841'," +
-                " '1.23', '3.59' )";
+                " '2', 'kasir', " +
+                " '58.82', '150.53'," +
+                " '1.21', '9.19' )";
 
         String sql4 = "INSERT INTO " + TABLE_NAME +"  (id, nama, posisix, posisiy,  venuex, venuey ) VALUES (" +
-                " '3', 'kamar aku', " +
-                " '826', '1156'," +
-                " '13.16', '2.64' )";
+                " '3', 'beras', " +
+                " '26.92', '229.28'," +
+                " '7.10', '4.99' )";
 
         String sql5 = "INSERT INTO " + TABLE_NAME +"  (id, nama, posisix, posisiy,  venuex, venuey ) VALUES (" +
-                " '4', 'kamar mandi 1', " +
-                " '977', '1018'," +
-                " '15.31', '3.39' )";
+                " '4', 'pepsodent', " +
+                " '98.69', '201.37'," +
+                " '10.54', '6.84' )";
 
         String sql6 = "INSERT INTO " + TABLE_NAME +"  (id, nama, posisix, posisiy,  venuex, venuey ) VALUES (" +
-                " '5', 'kamar mandi 2', " +
-                " '950', '1271'," +
-                " '15.38', '1.92' )";
+                " '5', 'atm', " +
+                " '224.30', '128.60'," +
+                " '15.70', '9.12' )";
 
-        String sql7 = "INSERT INTO " + TABLE_NAME +"  (id, nama, posisix, posisiy,  venuex, venuey ) VALUES (" +
-                " '6', 'kamar mandi 3', " +
-                " '1009', '1458'," +
-                " '15.31', '0.85' )";
+//        String sql7 = "INSERT INTO " + TABLE_NAME +"  (id, nama, posisix, posisiy,  venuex, venuey ) VALUES (" +
+//                " '6', 'kamar mandi 3', " +
+//                " '1009', '1458'," +
+//                " '15.31', '0.85' )";
 
-        String[] statements = new String[]{sql, sql2, sql3, sql4, sql5, sql6, sql7};
+        String[] statements = new String[]{sql, sql2, sql3, sql4, sql5, sql6};
         // use something like StringTokenizer to separate sql statements
         for(String sqlExec : statements){
             db.execSQL(sqlExec);
